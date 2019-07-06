@@ -45,6 +45,16 @@ func TestServerCreateStream(t *testing.T) {
 	assert.NotNil(t, s.getStream("test"))
 }
 
+func TestServerCreateStreamNoID(t *testing.T) {
+	s := New()
+	defer s.Close()
+
+	s.CreateStream("")
+
+	assert.NotNil(t, s.getStream(""))
+	assert.NotNil(t, s.getStream("defaultStream"))
+}
+
 func TestServerCreateExistingStream(t *testing.T) {
 	s := New()
 	defer s.Close()
