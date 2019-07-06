@@ -26,8 +26,7 @@ func (s *Server) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	// Get the StreamID from the URL
 	streamID := r.URL.Query().Get("stream")
 	if streamID == "" {
-		http.Error(w, "Please specify a stream!", http.StatusInternalServerError)
-		return
+		streamID = DefaultStreamID
 	}
 
 	stream := s.getStream(streamID)

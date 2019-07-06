@@ -13,6 +13,9 @@ import (
 // DefaultBufferSize size of the queue that holds the streams messages.
 const DefaultBufferSize = 1024
 
+// DefaultStreamID name of default stream when none set
+const DefaultStreamID = "DefaultStream"
+
 // Server Is our main struct
 type Server struct {
 	// Specifies the size of the message buffer for each stream
@@ -52,53 +55,58 @@ func (s *Server) Close() {
 
 // CreateStream will create a new stream and register it
 func (s *Server) CreateStream(id string) *Stream {
+	sID := s.getID(id)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if s.Streams[id] != nil {
-		return s.Streams[id]
+	if s.Streams[sID] != nil {
+		return s.Streams[sID]
 	}
 
 	str := newStream(s.BufferSize, s.AutoReplay)
 	str.run()
 
-	s.Streams[id] = str
+	s.Streams[sID] = str
 
 	return str
 }
 
 // RemoveStream will remove a stream
 func (s *Server) RemoveStream(id string) {
+	sID := s.getID(id)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if s.Streams[id] != nil {
-		s.Streams[id].close()
-		delete(s.Streams, id)
+	if s.Streams[sID] != nil {
+		s.Streams[sID].close()
+		delete(s.Streams, sID)
 	}
 }
 
 // StreamExists checks whether a stream by a given id exists
 func (s *Server) StreamExists(id string) bool {
+	sID := s.getID(id)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	return s.Streams[id] != nil
+	return s.Streams[sID] != nil
 }
 
 // Publish sends a mesage to every client in a streamID
 func (s *Server) Publish(id string, event *Event) {
+	sID := s.getID(id)
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.Streams[id] != nil {
-		s.Streams[id].event <- s.process(event)
+	if s.Streams[sID] != nil {
+		s.Streams[sID].event <- s.process(event)
 	}
 }
 
 func (s *Server) getStream(id string) *Stream {
+	sID := s.getID(id)
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.Streams[id]
+	return s.Streams[sID]
 }
 
 func (s *Server) process(event *Event) *Event {
@@ -108,4 +116,11 @@ func (s *Server) process(event *Event) *Event {
 		event.Data = output
 	}
 	return event
+}
+
+func (s *Server) getID(id string) string {
+	if id == "" {
+		return DefaultStreamID
+	}
+	return id
 }
