@@ -102,6 +102,16 @@ func (s *Server) Publish(id string, event *Event) {
 	}
 }
 
+// Comment adds a comment to every client in a streamID
+func (s *Server) Comment(id string, text string) {
+	sID := s.getID(id)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.Streams[sID] != nil {
+		s.Streams[sID].comment <- text
+	}
+}
+
 func (s *Server) getStream(id string) *Stream {
 	sID := s.getID(id)
 	s.mu.Lock()

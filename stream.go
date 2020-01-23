@@ -14,6 +14,7 @@ type Stream struct {
 	register    chan *Subscriber
 	deregister  chan *Subscriber
 	event       chan *Event
+	comment     chan string
 	quit        chan bool
 }
 
@@ -31,6 +32,7 @@ func newStream(bufsize int, replay bool) *Stream {
 		register:    make(chan *Subscriber),
 		deregister:  make(chan *Subscriber),
 		event:       make(chan *Event, bufsize),
+		comment:     make(chan string, bufsize),
 		quit:        make(chan bool),
 		Eventlog:    make(EventLog, 0),
 	}
@@ -62,6 +64,11 @@ func (str *Stream) run() {
 				for i := range str.subscribers {
 					str.subscribers[i].connection <- event
 				}
+			// Publish comment to subscribers
+			case comment := <-str.comment:
+				for i := range str.subscribers {
+					str.subscribers[i].comments <- comment
+				}
 
 			// Shutdown if the server closes
 			case <-str.quit:
@@ -92,6 +99,7 @@ func (str *Stream) addSubscriber(eventid int) *Subscriber {
 		eventid:    eventid,
 		quit:       str.deregister,
 		connection: make(chan *Event, 64),
+		comments:   make(chan string, 64),
 	}
 
 	str.register <- sub
@@ -100,12 +108,14 @@ func (str *Stream) addSubscriber(eventid int) *Subscriber {
 
 func (str *Stream) removeSubscriber(i int) {
 	close(str.subscribers[i].connection)
+	close(str.subscribers[i].comments)
 	str.subscribers = append(str.subscribers[:i], str.subscribers[i+1:]...)
 }
 
 func (str *Stream) removeAllSubscribers() {
 	for i := 0; i < len(str.subscribers); i++ {
 		close(str.subscribers[i].connection)
+		close(str.subscribers[i].comments)
 	}
 	str.subscribers = str.subscribers[:0]
 }

@@ -62,6 +62,13 @@ func (s *Server) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	// Push events to client
 	for {
 		select {
+		case str, ok := <-sub.comments:
+			if !ok {
+				return
+			}
+			// write out any comments to the feed
+			fmt.Fprintf(w, ": %s\n\n", str)
+			flusher.Flush()
 		case ev, ok := <-sub.connection:
 			if !ok {
 				return

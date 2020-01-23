@@ -9,6 +9,11 @@ type Subscriber struct {
 	eventid    int
 	quit       chan *Subscriber
 	connection chan *Event
+
+	// comments are in the spec
+	// for keep alives etc
+	// ignored by SSE parsers
+	comments chan string
 }
 
 // Close will let the stream know that the clients connection has terminated
